@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facilitator Panel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f1a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #1a1a2e;
+  }
+  .panel-header h1 { font-size: 1.3rem; color: #fff; }
+  .phase-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .phase-badge.registration { background: #1a2e1a; color: #34d399; border: 1px solid #166534; }
+  .phase-badge.voting { background: #1a1a2e; color: #5b7fff; border: 1px solid #3730a3; }
+  .phase-badge.reveal { background: #2a1a2e; color: #c084fc; border: 1px solid #7c3aed; }
+  .phase-badge.coordination { background: #2a1a00; color: #f59e0b; border: 1px solid #92400e; }
+  .phase-badge.ended { background: #1a1a1a; color: #888; border: 1px solid #333; }
+
+  .section {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .section h2 {
+    font-size: 1.1rem;
+    color: #888;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  /* --- Buttons --- */
+  .btn {
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-primary { background: #5b7fff; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #4a6ee0; }
+  .btn-success { background: #166534; color: #34d399; }
+  .btn-success:hover:not(:disabled) { background: #15803d; }
+  .btn-warning { background: #92400e; color: #f59e0b; }
+  .btn-warning:hover:not(:disabled) { background: #a3540f; }
+  .btn-danger { background: #7f1d1d; color: #f87171; }
+  .btn-danger:hover:not(:disabled) { background: #991b1b; }
+  .btn-ghost {
+    background: transparent;
+    color: #888;
+    border: 1px solid #333;
+  }
+  .btn-ghost:hover:not(:disabled) { background: #1a1a2e; color: #fff; }
+  .btn-small { padding: 8px 16px; font-size: 0.85rem; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* --- Teams List --- */
+  .team-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #0f0f1a;
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+  .team-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .team-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+  }
+  .team-dot.disconnected { background: #f87171; }
+  .team-name-f { font-weight: 600; color: #fff; }
+  .team-score { color: #888; font-size: 0.9rem; }
+
+  /* --- Manual Entry --- */
+  .manual-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #0f0f1a;
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+  .manual-entry .team-name-f { flex: 1; }
+  .manual-entry .btn { padding: 8px 14px; font-size: 0.8rem; }
+  .manual-entry .status {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .manual-entry .status.submitted { color: #34d399; background: #0a2e1a; }
+  .manual-entry .status.coast { color: #34d399; }
+  .manual-entry .status.mountains { color: #818cf8; }
+  .manual-entry .status.pending { color: #f59e0b; }
+
+  /* --- Round Info --- */
+  .round-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 16px;
+  }
+  .round-num {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #fff;
+  }
+  .round-meta { color: #888; font-size: 0.9rem; }
+  .round-meta strong { color: #fff; }
+
+  /* --- Coordination Note --- */
+  .coord-note {
+    background: #2a1a00;
+    border: 1px solid #92400e;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #f59e0b;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+
+  /* --- Summary Table --- */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 12px;
+  }
+  .summary-table th {
+    text-align: left;
+    padding: 8px;
+    color: #666;
+    font-weight: 600;
+    border-bottom: 1px solid #333;
+  }
+  .summary-table td {
+    padding: 8px;
+    border-bottom: 1px solid #1a1a2e;
+  }
+  .summary-table .positive { color: #34d399; }
+  .summary-table .negative { color: #f87171; }
+
+  /* --- Reset Confirm --- */
+  .reset-confirm {
+    display: none;
+    background: #1a0a0a;
+    border: 1px solid #7f1d1d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .reset-confirm.active { display: block; }
+  .reset-confirm p { color: #f87171; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="panel-header">
+  <h1>Facilitator Panel</h1>
+  <span class="phase-badge registration" id="phase-badge">Registration</span>
+</div>
+
+<!-- Registration Phase -->
+<div id="section-registration">
+  <div class="section">
+    <h2>Teams Registered</h2>
+    <div id="reg-team-list"></div>
+    <p id="reg-empty" style="color:#555; font-size:0.9rem;">No teams yet. Share the QR code on the display screen.</p>
+  </div>
+  <div class="section">
+    <div class="btn-row">
+      <button class="btn btn-success" id="btn-start" onclick="startGame()" disabled>
+        Start Game
+      </button>
+      <span id="start-hint" style="color:#666; font-size:0.85rem; align-self:center;">Need at least 2 teams</span>
+    </div>
+  </div>
+</div>
+
+<!-- Active Game -->
+<div id="section-game" style="display:none;">
+  <!-- Round Controls -->
+  <div class="section">
+    <div class="round-info">
+      <div class="round-num">Round <span id="f-round">1</span></div>
+      <div class="round-meta">
+        <div>Phase: <strong id="f-phase-text">Voting</strong></div>
+        <div>Submitted: <strong id="f-submitted-count">0</strong> / <strong id="f-total-count">0</strong></div>
+        <div>Room Total: <strong id="f-collective">0</strong></div>
+        <div>Room Possible So Far: <strong id="f-possible-so-far">0</strong></div>
+        <div>Room Possible (All 10 Rounds): <strong id="f-possible-total">0</strong></div>
+        <div>Max One Team Could Earn: <strong id="f-max-one-team">0</strong></div>
+      </div>
+    </div>
+
+    <div id="coord-note-3" class="coord-note" style="display:none;">
+      ⚠️ After revealing this round, a Coordination Round will begin. Delegates negotiate.
+    </div>
+    <div id="coord-note-7" class="coord-note" style="display:none;">
+      ⚠️ After revealing this round, a Coordination Round will begin. Delegates negotiate.
+    </div>
+
+    <div class="btn-row" id="round-controls">
+      <button class="btn btn-primary" id="btn-reveal" onclick="revealResults()" style="display:none;">
+        Reveal Results
+      </button>
+      <button class="btn btn-success" id="btn-next" onclick="nextRound()" style="display:none;">
+        Next Round
+      </button>
+      <button class="btn btn-warning" id="btn-end-coord" onclick="nextRound()" style="display:none;">
+        End Coordination → Next Round
+      </button>
+      <button class="btn btn-danger btn-small" id="btn-force-reveal" onclick="revealResults()" style="display:none;">
+        Force Reveal (not all in)
+      </button>
+      <button class="btn btn-danger btn-small" id="btn-end-game" onclick="endGame()" style="display:none;">
+        End Game Early
+      </button>
+    </div>
+  </div>
+
+  <!-- Manual Entry -->
+  <div class="section" id="manual-entry-section">
+    <h2>Team Choices <span style="font-weight:400; color:#555; text-transform:none; letter-spacing:0;">(tap to enter manually)</span></h2>
+    <div id="manual-entry-list"></div>
+  </div>
+
+  <!-- Round History -->
+  <div class="section">
+    <h2>Round History</h2>
+    <div id="round-history" style="max-height: 300px; overflow-y: auto;"></div>
+  </div>
+</div>
+
+<!-- Game Over Section -->
+<div id="section-gameover" style="display:none;">
+  <div class="section">
+    <h2>Game Complete</h2>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="showRules()">Show / Hide Rules on Screen</button>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Final Results</h2>
+    <div id="final-results"></div>
+  </div>
+</div>
+
+<!-- Always Available -->
+<div class="section" style="margin-top: 30px;">
+  <div class="btn-row">
+    <button class="btn btn-ghost btn-small" onclick="toggleReset()">Reset Game</button>
+  </div>
+  <div class="reset-confirm" id="reset-confirm">
+    <p>This will erase all game data and return to registration. Are you sure?</p>
+    <div class="btn-row">
+      <button class="btn btn-danger btn-small" onclick="resetGame()">Yes, Reset Everything</button>
+      <button class="btn btn-ghost btn-small" onclick="toggleReset()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let state = null;
+
+socket.on('connect', () => {
+  socket.emit('join-facilitator');
+});
+
+socket.on('facilitator-update', (s) => {
+  state = s;
+  render(s);
+});
+
+// Also listen for state-update as backup
+socket.on('state-update', () => {
+  // Re-request facilitator state
+  socket.emit('join-facilitator');
+});
+
+function render(s) {
+  // Phase badge
+  const badge = document.getElementById('phase-badge');
+  badge.textContent = s.phase.charAt(0).toUpperCase() + s.phase.slice(1);
+  badge.className = 'phase-badge ' + s.phase;
+
+  const isReg = s.phase === 'registration';
+  const isEnded = s.phase === 'ended';
+  const isActive = !isReg && !isEnded;
+
+  document.getElementById('section-registration').style.display = isReg ? 'block' : 'none';
+  document.getElementById('section-game').style.display = isActive ? 'block' : 'none';
+  document.getElementById('section-gameover').style.display = isEnded ? 'block' : 'none';
+
+  if (isReg) renderRegistration(s);
+  if (isActive) renderGame(s);
+  if (isEnded) renderGameOver(s);
+}
+
+function renderRegistration(s) {
+  const list = document.getElementById('reg-team-list');
+  const teams = s.teamOrder.map(id => ({ id, ...s.allTeams[id] }));
+  document.getElementById('reg-empty').style.display = teams.length === 0 ? 'block' : 'none';
+
+  list.innerHTML = teams.map(t => `
+    <div class="team-item">
+      <div class="team-info">
+        <div class="team-dot ${t.connected ? '' : 'disconnected'}"></div>
+        <span class="team-name-f">${escapeHtml(t.name)}</span>
+      </div>
+      <button class="btn btn-danger btn-small" onclick="removeTeam('${t.id}')">Remove</button>
+    </div>
+  `).join('');
+
+  const canStart = teams.length >= 2;
+  document.getElementById('btn-start').disabled = !canStart;
+  document.getElementById('start-hint').textContent = canStart
+    ? `${teams.length} teams ready`
+    : 'Need at least 2 teams';
+}
+
+function renderGame(s) {
+  document.getElementById('f-round').textContent = s.currentRound;
+  document.getElementById('f-phase-text').textContent = s.phase;
+  document.getElementById('f-submitted-count').textContent = s.submittedThisRound.length;
+  document.getElementById('f-total-count').textContent = s.teamOrder.length;
+
+  const ct = s.collectiveTotal;
+  document.getElementById('f-collective').textContent = (ct >= 0 ? '+' : '') + ct;
+
+  // Possible points stats
+  const numTeams = s.teamOrder.length;
+  const roundsCompleted = s.history.length;
+  document.getElementById('f-possible-so-far').textContent = numTeams * roundsCompleted;
+  document.getElementById('f-possible-total').textContent = numTeams * 10;
+  document.getElementById('f-max-one-team').textContent = (numTeams - 1) * 10;
+
+  // Coordination notes
+  document.getElementById('coord-note-3').style.display =
+    (s.phase === 'voting' && s.currentRound === 3) ? 'block' : 'none';
+  document.getElementById('coord-note-7').style.display =
+    (s.phase === 'voting' && s.currentRound === 7) ? 'block' : 'none';
+
+  // Buttons
+  const allIn = s.submittedThisRound.length === s.teamOrder.length;
+  document.getElementById('btn-reveal').style.display =
+    (s.phase === 'voting' && allIn) ? 'inline-flex' : 'none';
+  document.getElementById('btn-force-reveal').style.display =
+    (s.phase === 'voting' && !allIn && s.submittedThisRound.length > 0) ? 'inline-flex' : 'none';
+  document.getElementById('btn-next').style.display =
+    (s.phase === 'reveal') ? 'inline-flex' : 'none';
+  document.getElementById('btn-end-coord').style.display =
+    (s.phase === 'coordination') ? 'inline-flex' : 'none';
+  document.getElementById('btn-end-game').style.display =
+    (s.phase === 'voting' || s.phase === 'reveal') ? 'inline-flex' : 'none';
+
+  // Manual entry
+  const entrySection = document.getElementById('manual-entry-section');
+  entrySection.style.display = (s.phase === 'voting') ? 'block' : 'none';
+
+  if (s.phase === 'voting') {
+    const entryList = document.getElementById('manual-entry-list');
+    entryList.innerHTML = s.teamOrder.map(id => {
+      const team = s.allTeams[id];
+      const choice = s.roundChoices[id];
+      const submitted = !!choice;
+
+      if (submitted) {
+        return `
+          <div class="manual-entry">
+            <div class="team-dot ${team.connected ? '' : 'disconnected'}"></div>
+            <span class="team-name-f">${escapeHtml(team.name)}</span>
+            <span class="status ${choice}">${choice === 'coast' ? '🌊 Coast' : '⛰️ Mountains'}</span>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="manual-entry">
+            <div class="team-dot ${team.connected ? '' : 'disconnected'}"></div>
+            <span class="team-name-f">${escapeHtml(team.name)}</span>
+            <span class="status pending">Waiting...</span>
+            <button class="btn btn-success btn-small" onclick="manualChoice('${id}', 'coast')">🌊 Coast</button>
+            <button class="btn btn-primary btn-small" onclick="manualChoice('${id}', 'mountains')">⛰️ Mtns</button>
+          </div>
+        `;
+      }
+    }).join('');
+  }
+
+  // Round history
+  renderHistory(s);
+}
+
+function renderHistory(s) {
+  const container = document.getElementById('round-history');
+  if (s.history.length === 0) {
+    container.innerHTML = '<p style="color:#555; font-size:0.9rem;">No rounds completed yet.</p>';
+    return;
+  }
+
+  let html = '<table class="summary-table"><thead><tr><th>Rnd</th>';
+  for (const id of s.teamOrder) {
+    html += `<th>${escapeHtml(s.allTeams[id].name)}</th>`;
+  }
+  html += '<th>Room</th></tr></thead><tbody>';
+
+  for (const round of s.history) {
+    html += `<tr><td>${round.round}</td>`;
+    let roundTotal = 0;
+    for (const id of s.teamOrder) {
+      const choice = round.choices[id];
+      const score = round.scores[id] || 0;
+      roundTotal += score;
+      const icon = choice === 'coast' ? '🌊' : '⛰️';
+      const cls = score > 0 ? 'positive' : score < 0 ? 'negative' : '';
+      html += `<td class="${cls}">${icon} ${score > 0 ? '+' : ''}${score}</td>`;
+    }
+    const rCls = roundTotal > 0 ? 'positive' : roundTotal < 0 ? 'negative' : '';
+    html += `<td class="${rCls}">${roundTotal > 0 ? '+' : ''}${roundTotal}</td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderGameOver(s) {
+  const ct = s.collectiveTotal;
+  let html = `
+    <p style="margin-bottom:8px;">Room Total: <strong style="color:${ct > 0 ? '#34d399' : ct < 0 ? '#f87171' : '#888'}; font-size:1.3rem;">${(ct >= 0 ? '+' : '') + ct}</strong></p>
+    <p style="margin-bottom:8px;">Possible through cooperation: <strong style="color:#5b7fff;">+${s.collectiveMax}</strong></p>
+    <p style="margin-bottom:16px;">Max one team could earn: <strong style="color:#f59e0b;">+${s.maxOneTeam}</strong></p>
+  `;
+
+  // Final standings
+  const sorted = [...s.teamOrder].sort((a, b) => (s.cumulative[b] || 0) - (s.cumulative[a] || 0));
+  html += '<div>';
+  sorted.forEach((id, i) => {
+    const cum = s.cumulative[id] || 0;
+    const cls = cum > 0 ? 'color:#34d399' : cum < 0 ? 'color:#f87171' : 'color:#888';
+    html += `<div class="team-item"><div class="team-info"><span class="team-name-f">${i + 1}. ${escapeHtml(s.allTeams[id].name)}</span></div><span style="${cls}; font-weight:700; font-size:1.1rem;">${(cum >= 0 ? '+' : '') + cum}</span></div>`;
+  });
+  html += '</div>';
+
+  // History
+  html += '<div style="margin-top:16px;">';
+  renderHistory(s);
+  html += '</div>';
+
+  document.getElementById('final-results').innerHTML = html;
+}
+
+// --- Actions ---
+function startGame() { socket.emit('start-game'); }
+function revealResults() { socket.emit('reveal-results'); }
+function nextRound() { socket.emit('next-round'); }
+function endGame() {
+  if (confirm('End the game now? This will skip remaining rounds.')) {
+    socket.emit('end-game');
+  }
+}
+function showRules() { socket.emit('show-rules'); }
+function removeTeam(teamId) {
+  if (confirm('Remove this team?')) {
+    socket.emit('remove-team', { teamId });
+  }
+}
+function manualChoice(teamId, choice) {
+  socket.emit('facilitator-submit-choice', { teamId, choice });
+}
+
+function toggleReset() {
+  document.getElementById('reset-confirm').classList.toggle('active');
+}
+function resetGame() {
+  fetch('/api/reset', { method: 'POST' }).then(() => {
+    document.getElementById('reset-confirm').classList.remove('active');
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

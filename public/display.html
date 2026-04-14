@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Display</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a14;
+    color: #e0e0e0;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: #0f0f1a;
+    border-bottom: 1px solid #1a1a2e;
+  }
+  .header-title { font-size: 1.4rem; font-weight: 700; color: #fff; }
+  .round-display {
+    font-size: 1.2rem;
+    color: #888;
+    background: #1a1a2e;
+    padding: 8px 24px;
+    border-radius: 20px;
+  }
+  .round-display strong { color: #fff; font-size: 1.4rem; }
+  .collective-display {
+    text-align: right;
+    font-size: 0.95rem;
+    color: #888;
+  }
+  .collective-display .total {
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+  .collective-display .total.positive { color: #34d399; }
+  .collective-display .total.negative { color: #f87171; }
+  .collective-display .total.zero { color: #888; }
+
+  .main { padding: 30px 40px; height: calc(100vh - 80px); display: flex; flex-direction: column; }
+
+  /* --- Registration --- */
+  .reg-container {
+    display: flex;
+    flex: 1;
+    gap: 40px;
+    align-items: center;
+    justify-content: center;
+  }
+  .qr-section {
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .qr-section img { width: 280px; height: 280px; border-radius: 16px; background: #fff; }
+  .qr-url {
+    margin-top: 12px;
+    font-size: 1.3rem;
+    color: #5b7fff;
+    font-weight: 600;
+    word-break: break-all;
+  }
+  .qr-instruction { color: #888; margin-top: 8px; font-size: 1rem; }
+  .teams-list-reg {
+    flex: 1;
+    max-width: 500px;
+  }
+  .teams-list-reg h2 { font-size: 1.5rem; color: #fff; margin-bottom: 16px; }
+  .team-reg-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: #1a1a2e;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+    animation: slideIn 0.3s ease;
+    border-left: 4px solid #5b7fff;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .team-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #34d399;
+    flex-shrink: 0;
+  }
+  .team-dot.disconnected { background: #f87171; }
+
+  /* --- Scoreboard Grid --- */
+  .scoreboard {
+    flex: 1;
+    overflow-x: auto;
+  }
+  .score-grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px;
+  }
+  .score-grid th {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .score-grid th:first-child { text-align: left; }
+  .score-grid th:last-child { text-align: right; }
+  .score-grid th.current-round { color: #5b7fff; }
+  .score-grid td {
+    padding: 10px 12px;
+    background: #1a1a2e;
+    text-align: center;
+    font-size: 1.1rem;
+    white-space: nowrap;
+  }
+  .score-grid td:first-child {
+    text-align: left;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fff;
+    border-radius: 10px 0 0 10px;
+  }
+  .score-grid td:last-child {
+    text-align: right;
+    font-weight: 800;
+    font-size: 1.4rem;
+    border-radius: 0 10px 10px 0;
+  }
+  .score-grid .round-cell {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+  .score-grid .round-cell .choice-icon { font-size: 1rem; }
+  .score-grid .round-cell .cell-score { font-weight: 700; font-size: 1rem; }
+  .score-grid .round-cell .cell-score.positive { color: #34d399; }
+  .score-grid .round-cell .cell-score.negative { color: #f87171; }
+  .score-grid .round-cell.current { background: #1e2040; }
+  .score-grid .total-cell.positive { color: #34d399; }
+  .score-grid .total-cell.negative { color: #f87171; }
+  .score-grid .total-cell.zero { color: #666; }
+  .score-grid .empty-round { color: #333; font-size: 0.8rem; }
+  .team-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* --- Voting Status --- */
+  .voting-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .vote-chip {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: #1a1a2e;
+    border: 2px solid #333;
+    color: #666;
+    transition: all 0.3s;
+  }
+  .vote-chip.submitted {
+    border-color: #34d399;
+    color: #34d399;
+    background: #0a2e1a;
+  }
+
+  /* --- Reveal Animation --- */
+  .reveal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 10, 20, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .reveal-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .reveal-countdown {
+    font-size: 8rem;
+    font-weight: 900;
+    color: #fff;
+    animation: pulse 0.5s ease;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* --- Coordination Screen --- */
+  .coordination-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0a0a14;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 90;
+  }
+  .coordination-overlay.active { display: flex; }
+  .coordination-overlay h1 {
+    font-size: 4rem;
+    color: #f59e0b;
+    margin-bottom: 20px;
+  }
+  .coordination-overlay p {
+    font-size: 1.5rem;
+    color: #ccc;
+    max-width: 600px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .coordination-overlay .emoji { font-size: 6rem; margin-bottom: 20px; }
+
+  /* --- Game Over Screen --- */
+  .gameover-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0a0a14;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 90;
+    padding: 40px;
+  }
+  .gameover-overlay.active { display: flex; }
+  .gameover-overlay h1 { font-size: 3rem; color: #fff; margin-bottom: 30px; }
+  .gameover-stats {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 40px;
+  }
+  .gameover-stat {
+    text-align: center;
+  }
+  .gameover-stat .label { font-size: 1.1rem; color: #888; margin-bottom: 8px; }
+  .gameover-stat .value { font-size: 4rem; font-weight: 900; }
+  .gameover-stat .value.positive { color: #34d399; }
+  .gameover-stat .value.negative { color: #f87171; }
+  .gameover-stat .value.zero { color: #888; }
+  .gameover-stat .value.possible { color: #5b7fff; }
+  .gameover-stat .value.max-one { color: #f59e0b; }
+
+  .gameover-leaderboard {
+    width: 100%;
+    max-width: 700px;
+  }
+  .gameover-leaderboard h2 { font-size: 1.5rem; color: #fff; margin-bottom: 16px; text-align: center; }
+
+  /* --- Rules Screen --- */
+  .rules-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0a0a14;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 95;
+    padding: 40px;
+  }
+  .rules-overlay.active { display: flex; }
+  .rules-content {
+    max-width: 800px;
+    text-align: center;
+  }
+  .rules-content h1 { font-size: 2.5rem; color: #fff; margin-bottom: 30px; }
+  .rule-block {
+    background: #1a1a2e;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .rule-block h3 { color: #5b7fff; margin-bottom: 8px; font-size: 1.3rem; }
+  .rule-block p { color: #ccc; font-size: 1.1rem; line-height: 1.5; }
+  .rules-stats {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin-top: 24px;
+  }
+  .rules-stat {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 20px 30px;
+    text-align: center;
+  }
+  .rules-stat .label { color: #888; font-size: 0.95rem; margin-bottom: 6px; }
+  .rules-stat .value { color: #fff; font-size: 1.8rem; font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">Let's Play a Game!</div>
+  <div class="round-display" id="round-display" style="display:none;">
+    Round <strong id="round-num">1</strong> / 10
+  </div>
+</div>
+
+<div class="main">
+  <!-- Registration View -->
+  <div id="view-registration" class="reg-container">
+    <div class="qr-section">
+      <img id="qr-image" src="" alt="QR Code">
+      <div class="qr-url" id="qr-url"></div>
+      <div class="qr-instruction">Scan to join your table</div>
+    </div>
+    <div class="teams-list-reg">
+      <h2>Teams Joined</h2>
+      <div id="reg-teams-list"></div>
+      <p id="reg-waiting" style="color: #666; margin-top: 16px;">Waiting for teams...</p>
+    </div>
+  </div>
+
+  <!-- Game View (voting + reveal) -->
+  <div id="view-game" style="display:none;">
+    <!-- Voting status -->
+    <div id="voting-section">
+      <div class="voting-status" id="voting-status"></div>
+    </div>
+    <!-- Scoreboard - always visible -->
+    <div class="scoreboard" id="scoreboard"></div>
+  </div>
+</div>
+
+<!-- Reveal Countdown Overlay -->
+<div class="reveal-overlay" id="reveal-overlay">
+  <div class="reveal-countdown" id="reveal-countdown"></div>
+</div>
+
+<!-- Coordination Overlay -->
+<div class="coordination-overlay" id="coordination-overlay">
+  <div class="emoji">🤝</div>
+  <h1>Coordination Round</h1>
+  <p>Send one delegate from your table to negotiate with delegates from the other teams.</p>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="gameover-overlay" id="gameover-overlay">
+  <h1>Game Over</h1>
+  <div class="gameover-stats">
+    <div class="gameover-stat">
+      <div class="label">Room Total Earned</div>
+      <div class="value" id="go-earned">0</div>
+    </div>
+    <div class="gameover-stat">
+      <div class="label">Possible Through Cooperation</div>
+      <div class="value possible" id="go-possible">0</div>
+    </div>
+    <div class="gameover-stat">
+      <div class="label">Max One Team Could Earn</div>
+      <div class="value max-one" id="go-max-one">0</div>
+    </div>
+  </div>
+  <div class="gameover-leaderboard">
+    <h2>Final Standings</h2>
+    <div id="go-leaderboard"></div>
+  </div>
+</div>
+
+<!-- Rules Overlay -->
+<div class="rules-overlay" id="rules-overlay">
+  <div class="rules-content">
+    <h1>How Scoring Worked</h1>
+    <div class="rule-block">
+      <h3>🌊 All to the Coast!</h3>
+      <p>Each group earns 1 point.</p>
+    </div>
+    <div class="rule-block">
+      <h3>⛰️ All to the Mountains!</h3>
+      <p>Each group loses 1 point.</p>
+    </div>
+    <div class="rule-block">
+      <h3>Mixed Choices</h3>
+      <p>The side with fewer groups <strong>earns</strong> points equal to the number of groups on the other side.</p>
+      <p style="margin-top:8px;">The side with more groups <strong>loses</strong> points equal to the number of groups on the other side.</p>
+      <p style="margin-top:8px;">If tied, Mountains earns and Coast loses points equal to half the total groups.</p>
+    </div>
+    <div class="rules-stats" id="rules-stats"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let currentState = null;
+let revealInProgress = false;
+
+socket.on('connect', () => {
+  socket.emit('join-display');
+});
+
+// Load QR code
+fetch('/api/qr')
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('qr-image').src = data.qr;
+    // Show just the short URL
+    const url = new URL(data.url);
+    document.getElementById('qr-url').textContent = url.host;
+  });
+
+// --- State Updates ---
+socket.on('state-update', (s) => {
+  currentState = s;
+  render(s);
+});
+
+// --- Reveal Animation ---
+socket.on('all-submitted', () => {
+  if (revealInProgress) return;
+  // The facilitator triggers reveal, but we show a visual cue that all are in
+});
+
+socket.on('round-reveal', (roundResult) => {
+  // Show countdown then reveal
+  revealInProgress = true;
+  const overlay = document.getElementById('reveal-overlay');
+  const countdownEl = document.getElementById('reveal-countdown');
+
+  overlay.classList.add('active');
+
+  let count = 3;
+  countdownEl.textContent = count;
+
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countdownEl.textContent = count;
+      countdownEl.style.animation = 'none';
+      void countdownEl.offsetWidth;
+      countdownEl.style.animation = 'pulse 0.5s ease';
+    } else {
+      clearInterval(interval);
+      overlay.classList.remove('active');
+      revealInProgress = false;
+      // State update will handle the rest
+      if (currentState) render(currentState);
+    }
+  }, 700);
+});
+
+// --- Rules ---
+socket.on('show-rules', () => {
+  const overlay = document.getElementById('rules-overlay');
+  if (overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+  } else {
+    overlay.classList.add('active');
+    if (currentState) {
+      const statsHtml = `
+        <div class="rules-stat">
+          <div class="label">Points Earned</div>
+          <div class="value">${currentState.collectiveTotal}</div>
+        </div>
+        <div class="rules-stat">
+          <div class="label">Possible</div>
+          <div class="value">${currentState.collectiveMax}</div>
+        </div>
+        <div class="rules-stat">
+          <div class="label">Max One Team</div>
+          <div class="value">${currentState.maxOneTeam}</div>
+        </div>
+      `;
+      document.getElementById('rules-stats').innerHTML = statsHtml;
+    }
+  }
+});
+
+// --- Render ---
+function render(s) {
+  if (revealInProgress) return;
+
+  const isRegistration = s.phase === 'registration';
+  const isCoordination = s.phase === 'coordination';
+  const isEnded = s.phase === 'ended';
+
+  // Toggle views
+  document.getElementById('view-registration').style.display = isRegistration ? 'flex' : 'none';
+  document.getElementById('view-game').style.display = (!isRegistration) ? 'block' : 'none';
+  document.getElementById('round-display').style.display = (!isRegistration) ? 'block' : 'none';
+
+  // Overlays
+  document.getElementById('coordination-overlay').classList.toggle('active', isCoordination);
+  document.getElementById('gameover-overlay').classList.toggle('active', isEnded);
+
+  if (isRegistration) {
+    renderRegistration(s);
+  } else {
+    renderGame(s);
+  }
+}
+
+function renderRegistration(s) {
+  const list = document.getElementById('reg-teams-list');
+  const teams = s.teamOrder.map(id => s.teams[id]);
+  document.getElementById('reg-waiting').style.display = teams.length === 0 ? 'block' : 'none';
+
+  list.innerHTML = teams.map(t => `
+    <div class="team-reg-item">
+      <div class="team-dot ${t.connected ? '' : 'disconnected'}"></div>
+      ${escapeHtml(t.name)}
+    </div>
+  `).join('');
+}
+
+function renderGame(s) {
+  document.getElementById('round-num').textContent = s.currentRound;
+
+  // Voting status (during voting phase)
+  const votingSection = document.getElementById('voting-section');
+  if (s.phase === 'voting') {
+    votingSection.style.display = 'block';
+    const chips = s.teamOrder.map(id => {
+      const submitted = s.submittedThisRound.includes(id);
+      return `<div class="vote-chip ${submitted ? 'submitted' : ''}">
+        ${submitted ? '✓' : '...'} ${escapeHtml(s.teams[id].name)}
+      </div>`;
+    }).join('');
+    document.getElementById('voting-status').innerHTML = chips;
+  } else {
+    votingSection.style.display = 'none';
+  }
+
+  // Scoreboard
+  renderScoreboard(s);
+
+  // Game over
+  if (s.phase === 'ended') {
+    renderGameOver(s);
+  }
+}
+
+function renderScoreboard(s) {
+  const board = document.getElementById('scoreboard');
+  const sorted = [...s.teamOrder].sort((a, b) => (s.cumulative[b] || 0) - (s.cumulative[a] || 0));
+
+  // Build header: Team | R1 | R2 | ... | Total
+  let html = '<table class="score-grid"><thead><tr><th>Team</th>';
+  for (let r = 1; r <= Math.max(s.currentRound, s.history.length); r++) {
+    const isCurrent = r === s.currentRound;
+    html += `<th class="${isCurrent ? 'current-round' : ''}">R${r}</th>`;
+  }
+  html += '<th>Team Score</th></tr></thead><tbody>';
+
+  for (const id of sorted) {
+    const team = s.teams[id];
+    const cum = s.cumulative[id] || 0;
+
+    html += `<tr><td><div class="team-name-cell"><div class="team-dot ${team.connected ? '' : 'disconnected'}"></div>${escapeHtml(team.name)}</div></td>`;
+
+    // One cell per completed or current round
+    for (let r = 1; r <= Math.max(s.currentRound, s.history.length); r++) {
+      const roundData = s.history.find(h => h.round === r);
+      const isCurrent = r === s.currentRound;
+
+      if (roundData) {
+        // Completed round — show choice + score
+        const choice = roundData.choices[id];
+        const score = roundData.scores[id] || 0;
+        const icon = choice === 'coast' ? '🌊' : '⛰️';
+        const scoreCls = score > 0 ? 'positive' : score < 0 ? 'negative' : '';
+        html += `<td class="round-cell ${isCurrent ? 'current' : ''}">
+          <span class="choice-icon">${icon}</span><br>
+          <span class="cell-score ${scoreCls}">${score}</span>
+        </td>`;
+      } else if (isCurrent && s.phase === 'voting') {
+        // Current round, still voting
+        const submitted = s.submittedThisRound.includes(id);
+        html += `<td class="round-cell current">${submitted ? '✓' : '...'}</td>`;
+      } else {
+        html += `<td class="round-cell empty-round">—</td>`;
+      }
+    }
+
+    // Total
+    const cumCls = cum > 0 ? 'positive' : cum < 0 ? 'negative' : 'zero';
+    html += `<td class="total-cell ${cumCls}">${cum}</td>`;
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  board.innerHTML = html;
+}
+
+function renderGameOver(s) {
+  const earned = s.collectiveTotal;
+  const earnedEl = document.getElementById('go-earned');
+  earnedEl.textContent = (earned >= 0 ? '+' : '') + earned;
+  earnedEl.className = 'value ' + (earned > 0 ? 'positive' : earned < 0 ? 'negative' : 'zero');
+
+  document.getElementById('go-possible').textContent = '+' + s.collectiveMax;
+  document.getElementById('go-max-one').textContent = '+' + s.maxOneTeam;
+
+  // Leaderboard
+  const sorted = [...s.teamOrder].sort((a, b) => (s.cumulative[b] || 0) - (s.cumulative[a] || 0));
+  let html = '';
+  sorted.forEach((id, i) => {
+    const cum = s.cumulative[id] || 0;
+    const cls = cum > 0 ? 'positive' : cum < 0 ? 'negative' : 'zero';
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 24px; background:#1a1a2e; border-radius:12px; margin-bottom:6px; font-size:1.3rem;">
+        <div style="font-weight:700; color:#fff;">${i + 1}. ${escapeHtml(s.teams[id].name)}</div>
+        <div class="total-cell ${cls}" style="font-weight:800; font-size:1.5rem;">
+          ${(cum >= 0 ? '+' : '') + cum}
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById('go-leaderboard').innerHTML = html;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

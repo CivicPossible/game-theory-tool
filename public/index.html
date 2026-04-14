@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Game Theory Exercise</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f1a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 8px; color: #fff; }
+  .subtitle { font-size: 0.9rem; color: #888; margin-bottom: 30px; }
+  .round-badge {
+    display: inline-block;
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 20px;
+    padding: 6px 18px;
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 20px;
+  }
+  .round-badge strong { color: #fff; }
+
+  /* --- Registration --- */
+  .join-form { margin-top: 20px; }
+  .join-form input {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    border: 2px solid #333;
+    border-radius: 12px;
+    background: #1a1a2e;
+    color: #fff;
+    text-align: center;
+    outline: none;
+    margin-bottom: 12px;
+  }
+  .join-form input:focus { border-color: #5b7fff; }
+  .join-form input::placeholder { color: #555; }
+  .btn-join {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    background: #5b7fff;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-join:hover { background: #4a6ee0; }
+  .btn-join:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+  /* --- Choice Buttons --- */
+  .choice-area { margin-top: 20px; }
+  .choice-btn {
+    width: 100%;
+    padding: 28px 20px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .choice-btn.coast {
+    background: #0a2e1a;
+    color: #34d399;
+    border-color: #166534;
+  }
+  .choice-btn.coast:hover, .choice-btn.coast.selected {
+    background: #166534;
+    border-color: #34d399;
+    transform: scale(1.02);
+  }
+  .choice-btn.mountains {
+    background: #1a1a2e;
+    color: #818cf8;
+    border-color: #3730a3;
+  }
+  .choice-btn.mountains:hover, .choice-btn.mountains.selected {
+    background: #3730a3;
+    border-color: #818cf8;
+    transform: scale(1.02);
+  }
+  .choice-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  .choice-icon { font-size: 2rem; }
+
+  /* --- Confirm --- */
+  .confirm-area { margin-top: 10px; }
+  .btn-confirm {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    background: #f59e0b;
+    color: #000;
+    cursor: pointer;
+  }
+  .btn-confirm:hover { background: #d97706; }
+  .btn-cancel {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* --- Waiting --- */
+  .waiting {
+    margin-top: 30px;
+    padding: 30px;
+    background: #1a1a2e;
+    border-radius: 16px;
+    border: 1px solid #333;
+  }
+  .waiting .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #333;
+    border-top-color: #5b7fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- Results --- */
+  .result-card {
+    margin-top: 20px;
+    padding: 24px;
+    border-radius: 16px;
+    border: 2px solid #333;
+    background: #1a1a2e;
+  }
+  .result-choice {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .result-choice.coast { background: #0a2e1a; color: #34d399; }
+  .result-choice.mountains { background: #1a1a2e; color: #818cf8; border: 1px solid #3730a3; }
+  .result-score {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 12px 0;
+  }
+  .result-score.positive { color: #34d399; }
+  .result-score.negative { color: #f87171; }
+  .result-score.zero { color: #888; }
+  .result-cumulative {
+    font-size: 1rem;
+    color: #aaa;
+    margin-top: 8px;
+  }
+  .result-cumulative strong { color: #fff; font-size: 1.2rem; }
+
+  /* --- Error --- */
+  .error-msg {
+    color: #f87171;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    min-height: 20px;
+  }
+
+  /* --- Team Name Badge --- */
+  .team-badge {
+    display: inline-block;
+    background: #1a1a2e;
+    border: 1px solid #5b7fff;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    color: #5b7fff;
+    margin-bottom: 16px;
+  }
+
+  /* --- Coordination --- */
+  .coordination-msg {
+    margin-top: 30px;
+    padding: 30px;
+    background: #2a1a00;
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    text-align: center;
+  }
+  .coordination-msg h2 { color: #f59e0b; margin-bottom: 8px; }
+  .coordination-msg p { color: #ccc; font-size: 0.95rem; }
+
+  /* --- Game Over --- */
+  .game-over {
+    margin-top: 20px;
+    padding: 24px;
+    background: #1a1a2e;
+    border-radius: 16px;
+    border: 1px solid #333;
+  }
+  .game-over h2 { color: #fff; margin-bottom: 12px; }
+  .final-score { font-size: 2rem; font-weight: 800; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Registration Screen -->
+  <div id="screen-register" class="screen active">
+    <h1>Let's Play a Game!</h1>
+    <p class="subtitle">Enter your table's team name to join</p>
+    <div class="join-form">
+      <input type="text" id="team-name-input" placeholder="Team name" maxlength="24" autocomplete="off">
+      <button class="btn-join" id="btn-join" onclick="registerTeam()">Join Game</button>
+      <div class="error-msg" id="register-error"></div>
+    </div>
+  </div>
+
+  <!-- Waiting for Game Start -->
+  <div id="screen-lobby" class="screen">
+    <h1>You're In!</h1>
+    <div class="team-badge" id="lobby-team-name"></div>
+    <div class="waiting">
+      <div class="spinner"></div>
+      <p>Waiting for the game to start...</p>
+    </div>
+  </div>
+
+  <!-- Voting Screen -->
+  <div id="screen-vote" class="screen">
+    <div class="round-badge">Round <strong id="vote-round">1</strong> of 10</div>
+    <div class="team-badge" id="vote-team-name"></div>
+    <h1>Make Your Choice</h1>
+    <div class="choice-area" id="choice-area">
+      <button class="choice-btn coast" id="btn-coast" onclick="selectChoice('coast')">
+        <span class="choice-icon">🌊</span> Coast
+      </button>
+      <button class="choice-btn mountains" id="btn-mountains" onclick="selectChoice('mountains')">
+        <span class="choice-icon">⛰️</span> Mountains
+      </button>
+    </div>
+    <div class="confirm-area" id="confirm-area" style="display:none;">
+      <button class="btn-confirm" id="btn-confirm" onclick="confirmChoice()">Lock In Choice</button>
+      <button class="btn-cancel" onclick="cancelChoice()">Change</button>
+    </div>
+  </div>
+
+  <!-- Waiting for Others -->
+  <div id="screen-waiting" class="screen">
+    <div class="round-badge">Round <strong id="waiting-round">1</strong> of 10</div>
+    <div class="team-badge" id="waiting-team-name"></div>
+    <div class="waiting">
+      <div class="spinner"></div>
+      <p>Choice locked in. Waiting for other teams...</p>
+    </div>
+  </div>
+
+  <!-- Round Results -->
+  <div id="screen-result" class="screen">
+    <div class="round-badge">Round <strong id="result-round">1</strong> of 10</div>
+    <div class="team-badge" id="result-team-name"></div>
+    <div class="result-card">
+      <div class="result-choice" id="result-choice-display"></div>
+      <div>This Round</div>
+      <div class="result-score" id="result-round-score"></div>
+      <div class="result-cumulative">
+        Running Total: <strong id="result-cumulative"></strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coordination Round -->
+  <div id="screen-coordination" class="screen">
+    <div class="team-badge" id="coord-team-name"></div>
+    <div class="coordination-msg">
+      <h2>🤝 Coordination Round</h2>
+      <p>Send one delegate from your table to negotiate with delegates from the other teams.</p>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div id="screen-gameover" class="screen">
+    <h1>Game Over</h1>
+    <div class="team-badge" id="gameover-team-name"></div>
+    <div class="game-over">
+      <h2>Your Final Score</h2>
+      <div class="final-score" id="gameover-score"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let myTeamId = localStorage.getItem('gameTeamId');
+let myTeamName = localStorage.getItem('gameTeamName');
+let selectedChoice = null;
+let currentState = null;
+
+// --- Screen Management ---
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// --- Registration ---
+document.getElementById('team-name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') registerTeam();
+});
+
+function registerTeam() {
+  const name = document.getElementById('team-name-input').value.trim();
+  if (!name) {
+    document.getElementById('register-error').textContent = 'Enter a team name.';
+    return;
+  }
+  document.getElementById('btn-join').disabled = true;
+  socket.emit('register-team', { name }, (resp) => {
+    document.getElementById('btn-join').disabled = false;
+    if (resp.error) {
+      document.getElementById('register-error').textContent = resp.error;
+    } else {
+      myTeamId = resp.teamId;
+      myTeamName = name;
+      localStorage.setItem('gameTeamId', myTeamId);
+      localStorage.setItem('gameTeamName', myTeamName);
+      document.getElementById('lobby-team-name').textContent = myTeamName;
+      showScreen('lobby');
+    }
+  });
+}
+
+// --- Reconnection ---
+if (myTeamId) {
+  socket.emit('rejoin-team', { teamId: myTeamId }, (resp) => {
+    if (resp.error) {
+      // Team no longer exists, clear and show register
+      localStorage.removeItem('gameTeamId');
+      localStorage.removeItem('gameTeamName');
+      myTeamId = null;
+      myTeamName = null;
+      showScreen('register');
+    } else {
+      myTeamName = resp.teamName;
+      localStorage.setItem('gameTeamName', myTeamName);
+    }
+  });
+}
+
+// --- Choice Selection ---
+function selectChoice(choice) {
+  selectedChoice = choice;
+  document.getElementById('btn-coast').classList.toggle('selected', choice === 'coast');
+  document.getElementById('btn-mountains').classList.toggle('selected', choice === 'mountains');
+  document.getElementById('confirm-area').style.display = 'block';
+}
+
+function cancelChoice() {
+  selectedChoice = null;
+  document.getElementById('btn-coast').classList.remove('selected');
+  document.getElementById('btn-mountains').classList.remove('selected');
+  document.getElementById('confirm-area').style.display = 'none';
+}
+
+function confirmChoice() {
+  if (!selectedChoice) return;
+  document.getElementById('btn-confirm').disabled = true;
+  socket.emit('submit-choice', { choice: selectedChoice }, (resp) => {
+    document.getElementById('btn-confirm').disabled = false;
+    if (resp.error) {
+      alert(resp.error);
+    }
+  });
+}
+
+// --- State Updates ---
+socket.on('team-state', (ts) => {
+  updateTeamUI(ts);
+});
+
+socket.on('state-update', (s) => {
+  currentState = s;
+  if (myTeamId) {
+    // Reconstruct team-relevant view
+    updateFromPublicState(s);
+  }
+});
+
+function updateFromPublicState(s) {
+  const phase = s.phase;
+  const round = s.currentRound;
+  const hasSubmitted = s.submittedThisRound.includes(myTeamId);
+
+  // Set team names on all screens
+  document.querySelectorAll('.team-badge').forEach(el => {
+    if (myTeamName) el.textContent = myTeamName;
+  });
+
+  if (phase === 'registration') {
+    if (myTeamId && s.teams[myTeamId]) {
+      showScreen('lobby');
+    } else {
+      showScreen('register');
+    }
+  } else if (phase === 'voting') {
+    document.getElementById('vote-round').textContent = round;
+    document.getElementById('waiting-round').textContent = round;
+    if (hasSubmitted) {
+      showScreen('waiting');
+    } else {
+      selectedChoice = null;
+      cancelChoice();
+      document.getElementById('btn-coast').disabled = false;
+      document.getElementById('btn-mountains').disabled = false;
+      showScreen('vote');
+    }
+  } else if (phase === 'reveal') {
+    // Show latest result
+    const lastRound = s.history[s.history.length - 1];
+    if (lastRound) {
+      document.getElementById('result-round').textContent = lastRound.round;
+      const myChoice = lastRound.choices[myTeamId];
+      const myScore = lastRound.scores[myTeamId];
+      const cum = s.cumulative[myTeamId] || 0;
+
+      const choiceEl = document.getElementById('result-choice-display');
+      choiceEl.textContent = myChoice === 'coast' ? '🌊 Coast' : '⛰️ Mountains';
+      choiceEl.className = 'result-choice ' + (myChoice || '');
+
+      const scoreEl = document.getElementById('result-round-score');
+      const prefix = myScore > 0 ? '+' : '';
+      scoreEl.textContent = prefix + myScore;
+      scoreEl.className = 'result-score ' + (myScore > 0 ? 'positive' : myScore < 0 ? 'negative' : 'zero');
+
+      document.getElementById('result-cumulative').textContent = (cum >= 0 ? '+' : '') + cum;
+    }
+    showScreen('result');
+  } else if (phase === 'coordination') {
+    showScreen('coordination');
+  } else if (phase === 'ended') {
+    const cum = s.cumulative[myTeamId] || 0;
+    const scoreEl = document.getElementById('gameover-score');
+    scoreEl.textContent = (cum >= 0 ? '+' : '') + cum;
+    scoreEl.className = 'final-score ' + (cum > 0 ? 'positive' : cum < 0 ? 'negative' : 'zero');
+    showScreen('gameover');
+  }
+}
+
+function updateTeamUI(ts) {
+  // Called with direct team state from server
+  updateFromPublicState({
+    phase: ts.phase,
+    currentRound: ts.currentRound,
+    submittedThisRound: ts.hasSubmitted ? [ts.teamId] : [],
+    teams: {},
+    history: ts.history,
+    cumulative: { [ts.teamId]: ts.cumulative }
+  });
+}
+
+// --- Removed from game ---
+socket.on('removed', () => {
+  localStorage.removeItem('gameTeamId');
+  localStorage.removeItem('gameTeamName');
+  myTeamId = null;
+  myTeamName = null;
+  showScreen('register');
+});
+
+// --- Reconnect handling ---
+socket.on('connect', () => {
+  if (myTeamId) {
+    socket.emit('rejoin-team', { teamId: myTeamId }, (resp) => {
+      if (resp.error) {
+        localStorage.removeItem('gameTeamId');
+        localStorage.removeItem('gameTeamName');
+        myTeamId = null;
+        myTeamName = null;
+        showScreen('register');
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>
