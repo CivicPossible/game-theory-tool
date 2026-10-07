@@ -274,6 +274,7 @@
       <button class="btn-confirm" id="btn-confirm" onclick="confirmChoice()">Lock In Choice</button>
       <button class="btn-cancel" onclick="cancelChoice()">Change</button>
     </div>
+    <div class="error-msg" id="vote-msg"></div>
   </div>
 
   <!-- Waiting for Others -->
@@ -328,6 +329,7 @@ let myTeamId = localStorage.getItem('gameTeamId');
 let myTeamName = localStorage.getItem('gameTeamName');
 let selectedChoice = null;
 let currentState = null;
+let lastVoteRoundShown = null;
 
 // --- Screen Management ---
 function showScreen(id) {
@@ -394,15 +396,48 @@ function cancelChoice() {
   document.getElementById('confirm-area').style.display = 'none';
 }
 
+// Sends the choice and waits for the server to confirm it.
+// If no confirmation arrives, it quietly tries again.
+let submitAttempt = 0;
 function confirmChoice() {
-  if (!selectedChoice) return;
-  document.getElementById('btn-confirm').disabled = true;
-  socket.emit('submit-choice', { choice: selectedChoice }, (resp) => {
-    document.getElementById('btn-confirm').disabled = false;
-    if (resp.error) {
-      alert(resp.error);
-    }
-  });
+  if (!selectedChoice || !myTeamId) return;
+  const btn = document.getElementById('btn-confirm');
+  const msg = document.getElementById('vote-msg');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  msg.textContent = '';
+  const attemptId = ++submitAttempt;
+  let tries = 0;
+  let settled = false;
+
+  const finish = (text) => {
+    settled = true;
+    btn.disabled = false;
+    btn.textContent = 'Lock In Choice';
+    msg.textContent = text || '';
+  };
+
+  const send = () => {
+    if (settled || attemptId !== submitAttempt) return;
+    tries++;
+    if (!socket.connected) socket.connect();
+    socket.timeout(4000).emit('submit-choice', { teamId: myTeamId, choice: selectedChoice }, (err, resp) => {
+      if (settled || attemptId !== submitAttempt) return;
+      if (err) {
+        // No answer from the server. Try again a few times.
+        if (tries < 4) { setTimeout(send, 800); }
+        else { finish("That didn't go through. Tap Lock In again, or tell the facilitator."); }
+        return;
+      }
+      if (resp && resp.error) {
+        if (resp.code === 'not-voting') { finish(''); return; } // round already moved on
+        finish(resp.error);
+        return;
+      }
+      finish('');
+    });
+  };
+  send();
 }
 
 // --- State Updates ---
@@ -440,8 +475,15 @@ function updateFromPublicState(s) {
     if (hasSubmitted) {
       showScreen('waiting');
     } else {
-      selectedChoice = null;
-      cancelChoice();
+      if (round !== lastVoteRoundShown) {
+        lastVoteRoundShown = round;
+        submitAttempt++;
+        selectedChoice = null;
+        cancelChoice();
+        document.getElementById('vote-msg').textContent = '';
+        document.getElementById('btn-confirm').disabled = false;
+        document.getElementById('btn-confirm').textContent = 'Lock In Choice';
+      }
       document.getElementById('btn-coast').disabled = false;
       document.getElementById('btn-mountains').disabled = false;
       showScreen('vote');
@@ -497,6 +539,13 @@ socket.on('removed', () => {
   myTeamId = null;
   myTeamName = null;
   showScreen('register');
+});
+
+// --- Phone woke up / tab came back: make sure we're connected and in sync ---
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !myTeamId) return;
+  if (!socket.connected) { socket.connect(); return; } // 'connect' handler rejoins
+  socket.emit('rejoin-team', { teamId: myTeamId }, () => {});
 });
 
 // --- Reconnect handling ---

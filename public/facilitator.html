@@ -231,11 +231,8 @@
       </div>
     </div>
 
-    <div id="coord-note-3" class="coord-note" style="display:none;">
-      ⚠️ After revealing this round, a Coordination Round will begin. Delegates negotiate.
-    </div>
-    <div id="coord-note-7" class="coord-note" style="display:none;">
-      ⚠️ After revealing this round, a Coordination Round will begin. Delegates negotiate.
+    <div id="coord-note" class="coord-note" style="display:none;">
+      ⚠️ After this round, a Coordination Round will begin. Delegates negotiate.
     </div>
 
     <div class="btn-row" id="round-controls">
@@ -376,10 +373,8 @@ function renderGame(s) {
   document.getElementById('f-max-one-team').textContent = (numTeams - 1) * 10;
 
   // Coordination notes
-  document.getElementById('coord-note-3').style.display =
-    (s.phase === 'voting' && s.currentRound === 3) ? 'block' : 'none';
-  document.getElementById('coord-note-7').style.display =
-    (s.phase === 'voting' && s.currentRound === 7) ? 'block' : 'none';
+  document.getElementById('coord-note').style.display =
+    ((s.phase === 'voting' || s.phase === 'reveal') && [2, 5, 8].includes(s.currentRound)) ? 'block' : 'none';
 
   // Buttons
   const allIn = s.submittedThisRound.length === s.teamOrder.length;
