@@ -117,9 +117,10 @@ function getMaxOneTeam() {
   return (state.teamOrder.length - 1) * 10;
 }
 
-// Coordination rounds happen AFTER rounds 3 and 7
+// Coordination rounds happen AFTER rounds 2, 5 and 8
+const COORDINATION_AFTER = [2, 5, 8];
 function isCoordinationRound(roundNum) {
-  return roundNum === 3 || roundNum === 7;
+  return COORDINATION_AFTER.includes(roundNum);
 }
 
 // --- Static Files ---
@@ -304,12 +305,22 @@ io.on('connection', (socket) => {
 
   // --- Team Choice Submission ---
   socket.on('submit-choice', (data, callback) => {
-    if (state.phase !== 'voting') {
-      return callback?.({ error: 'Not accepting choices right now.' });
-    }
-    const teamId = socket.teamId || data.teamId;
+    // Phone now always sends its team ID, so a choice is never lost
+    // just because the connection dropped and came back.
+    const teamId = data.teamId || socket.teamId;
     if (!teamId || !state.teams[teamId]) {
-      return callback?.({ error: 'Team not recognized.' });
+      return callback?.({ error: 'Team not recognized.', code: 'unknown-team' });
+    }
+    // Re-attach this connection to the team (covers phones that woke from sleep)
+    if (socket.teamId !== teamId || state.teams[teamId].socketId !== socket.id) {
+      socket.teamId = teamId;
+      socket.join('teams');
+      state.teams[teamId].socketId = socket.id;
+      state.teams[teamId].connected = true;
+    }
+    if (state.phase !== 'voting') {
+      socket.emit('team-state', getTeamState(teamId));
+      return callback?.({ error: 'Not accepting choices right now.', code: 'not-voting' });
     }
     const choice = data.choice;
     if (choice !== 'coast' && choice !== 'mountains') {

@@ -42,7 +42,7 @@ That URL is what you share with participants. The display screen and facilitator
 3. Teams scan the QR code and enter their team name
 4. When all teams are in, hit "Start Game" on the facilitator panel
 5. Each round: teams vote on their phones, you reveal results
-6. After rounds 3 and 7: coordination rounds auto-trigger
+6. After rounds 2, 5 and 8: coordination rounds auto-trigger
 7. After round 10: game over screen shows collective results
 
 ### Fallback Mode
